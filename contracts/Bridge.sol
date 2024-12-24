@@ -58,6 +58,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         address[] _noVotes;
         VaultProposalStatus _status;
         uint256 _proposedBlock;
+        string _txKey;
     }
 
     // destinationChainID => number of deposits
@@ -103,7 +104,8 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         uint64 indexed depositNonce,
         VaultProposalStatus indexed status,
         bytes32 resourceID,
-        bytes32 dataHash
+        bytes32 dataHash,
+        string _txKey
     );
 
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
@@ -540,7 +542,8 @@ contract Bridge is Pausable, AccessControl, SafeMath {
     function executeVaultProposal(
         uint8 chainID,
         uint64 depositNonce,
-        bytes32 dataHash
+        bytes32 dataHash,
+        string memory txKey
     ) public onlyAdminOrRelayer {
         uint72 nonceAndID = (uint72(depositNonce) << 8) | uint72(chainID);
         VaultProposal storage proposal = _vaultProposals[nonceAndID][dataHash];
@@ -552,12 +555,14 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         );
 
         proposal._status = VaultProposalStatus.Active;
+        proposal._txKey = txKey;
         emit VaultProposalEvent(
             chainID,
             depositNonce,
             VaultProposalStatus.Active,
             proposal._resourceID,
-            proposal._dataHash
+            proposal._dataHash,
+            txKey
         );
     }
 
