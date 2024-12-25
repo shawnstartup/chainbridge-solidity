@@ -546,22 +546,29 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         string memory txKey
     ) public onlyAdminOrRelayer {
         uint72 nonceAndID = (uint72(depositNonce) << 8) | uint72(chainID);
-        VaultProposal storage proposal = _vaultProposals[nonceAndID][dataHash];
+        VaultProposal storage vaultProposal = _vaultProposals[nonceAndID][
+            dataHash
+        ];
 
+        Proposal storage proposal = _proposals[nonceAndID][dataHash];
         require(
-            proposal._status != VaultProposalStatus.Active &&
-                proposal._status != VaultProposalStatus.Executed,
-            "Proposal already active or executed"
+            proposal._status == ProposalStatus.Passed,
+            "proposal is not active"
+        );
+        require(
+            vaultProposal._status != VaultProposalStatus.Active &&
+                vaultProposal._status != VaultProposalStatus.Executed,
+            "VaultProposal already active or executed"
         );
 
-        proposal._status = VaultProposalStatus.Active;
-        proposal._txKey = txKey;
+        vaultProposal._status = VaultProposalStatus.Active;
+        vaultProposal._txKey = txKey;
         emit VaultProposalEvent(
             chainID,
             depositNonce,
             VaultProposalStatus.Active,
-            proposal._resourceID,
-            proposal._dataHash,
+            vaultProposal._resourceID,
+            vaultProposal._dataHash,
             txKey
         );
     }
@@ -576,11 +583,11 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         VaultProposal storage proposal = _vaultProposals[nonceAndID][dataHash];
 
         require(
-            proposal._status != VaultProposalStatus.Executed,
-            "Proposal already executed"
+            proposal._status == VaultProposalStatus.Active,
+            "VaultProposal is not active"
         );
 
-        proposal._status = VaultProposalStatus.Active;
+        proposal._status = VaultProposalStatus.Executed;
         emit VaultProposalEvent(
             chainID,
             depositNonce,
