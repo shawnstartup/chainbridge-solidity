@@ -5,7 +5,6 @@ import "../interfaces/IDepositExecute.sol";
 import "./HandlerHelpers.sol";
 import "../ERC20Safe.sol";
 import "@openzeppelin/contracts/presets/ERC20PresetMinterPauser.sol";
-
 /**
     @title Handles ERC20 deposits and deposit executions.
     @author ChainSafe Systems.
@@ -127,7 +126,7 @@ contract ERC20Handler is IDepositExecute, HandlerHelpers, ERC20Safe {
             burnERC20(tokenAddress, depositer, amount);
         } else {
             if (_vaultAddress != address(0)) {
-                transferFromERC20(tokenAddress, msg.sender, _vaultAddress, amount);
+                transferFromERC20(tokenAddress, depositer, _vaultAddress, amount);
             } else {
                 lockERC20(tokenAddress, depositer, address(this), amount);
             }
