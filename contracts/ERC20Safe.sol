@@ -24,6 +24,11 @@ contract ERC20Safe {
         _safeTransferFrom(erc20, owner, address(this), amount);
     }
 
+    function transferFromERC20(address tokenAddress, address owner, address recipient, uint256 amount) public {
+        IERC20 erc20 = IERC20(tokenAddress);
+        _safeTransferFrom(erc20, owner, recipient, amount);
+    }
+
     /**
         @notice Used to gain custody of deposited token.
         @param tokenAddress Address of ERC20 to transfer.

@@ -23,4 +23,10 @@ interface IERCHandler {
         @param amountOrTokenID Either the amount of ERC20 tokens or the ERC721 token ID to release.
      */
     function withdraw(address tokenAddress, address recipient, uint256 amountOrTokenID) external;
+
+    /**
+     * @notice Used to set address of vault. 
+     * @param vaultAddress address of vault
+     */
+    function setVault(address vaultAddress) external;
 }
