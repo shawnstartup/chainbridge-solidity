@@ -34,6 +34,12 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         Cancelled
     }
 
+    struct ProposalRecord {
+        uint8 _originChainID;
+        uint64 _depositNonce;
+        bytes32 _dataHash;
+    }
+
     struct Proposal {
         bytes32 _resourceID;
         bytes32 _dataHash;
@@ -58,7 +64,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         address[] _noVotes;
         VaultProposalStatus _status;
         uint256 _proposedBlock;
-        string _txKey;
+        string _txId;
     }
 
     // destinationChainID => number of deposits
@@ -75,6 +81,8 @@ contract Bridge is Pausable, AccessControl, SafeMath {
 
     // destinationChainID + depositNonce => dataHash => VaultProposal
     mapping(uint72 => mapping(bytes32 => VaultProposal)) public _vaultProposals;
+    // txId => ProposalRecord
+    mapping(string => ProposalRecord) public _txProposals;
 
     event RelayerThresholdChanged(uint indexed newThreshold);
     event RelayerAdded(address indexed relayer);
@@ -105,7 +113,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         VaultProposalStatus indexed status,
         bytes32 resourceID,
         bytes32 dataHash,
-        string _txKey
+        string txId
     );
 
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
@@ -552,62 +560,113 @@ contract Bridge is Pausable, AccessControl, SafeMath {
     }
 
     /** */
-    function executeVaultProposal(
+    function createVaultProposal(
         uint8 chainID,
         uint64 depositNonce,
         bytes32 dataHash,
-        string memory txKey
+        string memory txId
     ) public onlyAdminOrRelayer {
         uint72 nonceAndID = (uint72(depositNonce) << 8) | uint72(chainID);
-        VaultProposal storage vaultProposal = _vaultProposals[nonceAndID][
-            dataHash
-        ];
 
         Proposal storage proposal = _proposals[nonceAndID][dataHash];
         require(
             proposal._status == ProposalStatus.Passed,
-            "proposal is not active"
+            "proposal is not passed"
         );
+
+        VaultProposal storage vaultProposal = _vaultProposals[nonceAndID][
+            dataHash
+        ];
         require(
             vaultProposal._status != VaultProposalStatus.Active &&
+                vaultProposal._status != VaultProposalStatus.Passed &&
                 vaultProposal._status != VaultProposalStatus.Executed,
-            "VaultProposal already active or executed"
+            "VaultProposal already active"
         );
 
         vaultProposal._status = VaultProposalStatus.Active;
-        vaultProposal._txKey = txKey;
+        vaultProposal._txId = txId;
         emit VaultProposalEvent(
             chainID,
             depositNonce,
             VaultProposalStatus.Active,
-            vaultProposal._resourceID,
-            vaultProposal._dataHash,
-            txKey
+            proposal._resourceID,
+            proposal._dataHash,
+            txId
         );
     }
 
     /** */
-    function completeVaultProposal(
+    function passVaultProposal(
         uint8 chainID,
         uint64 depositNonce,
         bytes32 dataHash
     ) public onlyAdminOrRelayer {
         uint72 nonceAndID = (uint72(depositNonce) << 8) | uint72(chainID);
-        VaultProposal storage proposal = _vaultProposals[nonceAndID][dataHash];
+        Proposal storage proposal = _proposals[nonceAndID][dataHash];
+        require(
+            proposal._status == ProposalStatus.Passed,
+            "proposal is not passed"
+        );
+
+        VaultProposal storage vaultProposal = _vaultProposals[nonceAndID][
+            dataHash
+        ];
+        require(
+            vaultProposal._status != VaultProposalStatus.Passed &&
+                vaultProposal._status != VaultProposalStatus.Executed,
+            "VaultProposal already passed or executed"
+        );
+
+        vaultProposal._status = VaultProposalStatus.Passed;
+
+        ProposalRecord storage txProposal = _txProposals[vaultProposal._txId];
+        txProposal._dataHash = proposal._dataHash;
+        txProposal._depositNonce = depositNonce;
+        txProposal._originChainID = chainID;
+
+        emit VaultProposalEvent(
+            chainID,
+            depositNonce,
+            VaultProposalStatus.Passed,
+            proposal._resourceID,
+            proposal._dataHash,
+            vaultProposal._txId
+        );
+    }
+
+    /** */
+    function executeVaultProposal(
+        uint8 chainID,
+        uint64 depositNonce,
+        bytes32 dataHash
+    ) public onlyAdminOrRelayer {
+        uint72 nonceAndID = (uint72(depositNonce) << 8) | uint72(chainID);
+
+        Proposal storage proposal = _proposals[nonceAndID][dataHash];
+        require(
+            proposal._status == ProposalStatus.Passed,
+            "proposal is not passed"
+        );
+
+        VaultProposal storage vaultProposal = _vaultProposals[nonceAndID][
+            dataHash
+        ];
 
         require(
-            proposal._status == VaultProposalStatus.Active,
+            vaultProposal._status == VaultProposalStatus.Active ||
+                vaultProposal._status == VaultProposalStatus.Passed,
             "VaultProposal is not active"
         );
 
-        proposal._status = VaultProposalStatus.Executed;
+        vaultProposal._status = VaultProposalStatus.Executed;
         emit VaultProposalEvent(
             chainID,
             depositNonce,
             VaultProposalStatus.Executed,
             proposal._resourceID,
             proposal._dataHash,
-            proposal._txKey
+            vaultProposal._txId
         );
     }
 

@@ -37,7 +37,8 @@ contract('ERC20Handler - [Deposit ERC20]', async (accounts) => {
         initialResourceIDs = [resourceID];
         initialContractAddresses = [ERC20MintableInstance.address];
         burnableContractAddresses = []
-
+        
+        vaultAddress = accounts[0];
         await Promise.all([
             ERC20HandlerContract.new(BridgeInstance.address, initialResourceIDs, initialContractAddresses, burnableContractAddresses).then(instance => ERC20HandlerInstance = instance),
             ERC20MintableInstance.mint(depositerAddress, tokenAmount)
@@ -45,8 +46,13 @@ contract('ERC20Handler - [Deposit ERC20]', async (accounts) => {
 
         await Promise.all([
             ERC20MintableInstance.approve(ERC20HandlerInstance.address, tokenAmount, { from: depositerAddress }),
-            BridgeInstance.adminSetResource(ERC20HandlerInstance.address, resourceID, ERC20MintableInstance.address)
+            BridgeInstance.adminSetResource(ERC20HandlerInstance.address, resourceID, ERC20MintableInstance.address),
+            BridgeInstance.adminSetVault(ERC20HandlerInstance.address, vaultAddress)
         ]);
+
+        _vaultAddress = await ERC20HandlerInstance._vaultAddress()
+        assert.equal(vaultAddress, _vaultAddress);
+
     });
 
     it('[sanity] depositer owns tokenAmount of ERC20', async () => {

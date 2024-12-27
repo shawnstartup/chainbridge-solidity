@@ -9,7 +9,7 @@ set -e
 # Delete old chain data
 rm -rf $DATADIR
 # Init genesis
-geth init ./scripts/geth/genesis.json --datadir $DATADIR
+geth init --datadir $DATADIR ./scripts/geth/genesis.json 
 # Copy keystore
 rm -rf $DATADIR/keystore
 cp -r ./scripts/geth/keystore $DATADIR
