@@ -37,6 +37,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
     struct ProposalRecord {
         uint8 _originChainID;
         uint64 _depositNonce;
+        bytes32 _resourceID;
         bytes32 _dataHash;
     }
 
@@ -621,6 +622,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         vaultProposal._status = VaultProposalStatus.Passed;
 
         ProposalRecord storage txProposal = _txProposals[vaultProposal._txId];
+        txProposal._resourceID = proposal._resourceID;
         txProposal._dataHash = proposal._dataHash;
         txProposal._depositNonce = depositNonce;
         txProposal._originChainID = chainID;
