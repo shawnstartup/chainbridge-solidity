@@ -66,6 +66,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         VaultProposalStatus _status;
         uint256 _proposedBlock;
         string _txId;
+        string _txKey;
     }
 
     // destinationChainID => number of deposits
@@ -114,7 +115,8 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         VaultProposalStatus indexed status,
         bytes32 resourceID,
         bytes32 dataHash,
-        string txId
+        string txId,
+        string txKey
     );
 
     bytes32 public constant RELAYER_ROLE = keccak256("RELAYER_ROLE");
@@ -603,7 +605,8 @@ contract Bridge is Pausable, AccessControl, SafeMath {
             VaultProposalStatus.Active,
             proposal._resourceID,
             proposal._dataHash,
-            txId
+            txId,
+            ""
         );
     }
 
@@ -611,7 +614,8 @@ contract Bridge is Pausable, AccessControl, SafeMath {
     function passVaultProposal(
         uint8 chainID,
         uint64 depositNonce,
-        bytes32 dataHash
+        bytes32 dataHash,
+        string memory txKey
     ) public onlyAdminOrRelayer {
         uint72 nonceAndID = (uint72(depositNonce) << 8) | uint72(chainID);
         Proposal storage proposal = _proposals[nonceAndID][dataHash];
@@ -630,6 +634,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         );
 
         vaultProposal._status = VaultProposalStatus.Passed;
+        vaultProposal._txKey = txKey;
 
         ProposalRecord storage txProposal = _txProposals[vaultProposal._txId];
         txProposal._resourceID = proposal._resourceID;
@@ -643,7 +648,8 @@ contract Bridge is Pausable, AccessControl, SafeMath {
             VaultProposalStatus.Passed,
             proposal._resourceID,
             proposal._dataHash,
-            vaultProposal._txId
+            vaultProposal._txId,
+            txKey
         );
     }
 
@@ -678,7 +684,8 @@ contract Bridge is Pausable, AccessControl, SafeMath {
             VaultProposalStatus.Executed,
             proposal._resourceID,
             proposal._dataHash,
-            vaultProposal._txId
+            vaultProposal._txId,
+            vaultProposal._txKey
         );
     }
 
