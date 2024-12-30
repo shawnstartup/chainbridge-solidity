@@ -65,7 +65,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         address[] _noVotes;
         VaultProposalStatus _status;
         uint256 _proposedBlock;
-        string _txId;
+        bytes32 _txIdHash;
         string _txKey;
     }
 
@@ -83,8 +83,8 @@ contract Bridge is Pausable, AccessControl, SafeMath {
 
     // destinationChainID + depositNonce => dataHash => VaultProposal
     mapping(uint72 => mapping(bytes32 => VaultProposal)) public _vaultProposals;
-    // txId => ProposalRecord
-    mapping(string => ProposalRecord) public _txProposals;
+    // txIdHash => ProposalRecord
+    mapping(bytes32 => ProposalRecord) public _txProposals;
 
     event RelayerThresholdChanged(uint indexed newThreshold);
     event RelayerAdded(address indexed relayer);
@@ -115,7 +115,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         VaultProposalStatus indexed status,
         bytes32 resourceID,
         bytes32 dataHash,
-        string txId,
+        bytes32 txIdHash,
         string txKey
     );
 
@@ -355,12 +355,12 @@ contract Bridge is Pausable, AccessControl, SafeMath {
 
     /**
      * @notice Returns a ProposalRecord.
-     * @param txId txId of VaultProposal 
+     * @param txIdHash txIdHash of VaultProposal
      */
     function getTxProposalRecord(
-        string memory txId
+        bytes32 txIdHash
     ) public view returns (ProposalRecord memory) {
-        return _txProposals[txId];
+        return _txProposals[txIdHash];
     }
 
     /**
@@ -577,7 +577,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         uint8 chainID,
         uint64 depositNonce,
         bytes32 dataHash,
-        string memory txId
+        bytes32 txIdHash
     ) public onlyAdminOrRelayer {
         uint72 nonceAndID = (uint72(depositNonce) << 8) | uint72(chainID);
 
@@ -598,14 +598,14 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         );
 
         vaultProposal._status = VaultProposalStatus.Active;
-        vaultProposal._txId = txId;
+        vaultProposal._txIdHash = txIdHash;
         emit VaultProposalEvent(
             chainID,
             depositNonce,
             VaultProposalStatus.Active,
             proposal._resourceID,
             proposal._dataHash,
-            txId,
+            txIdHash,
             ""
         );
     }
@@ -636,7 +636,9 @@ contract Bridge is Pausable, AccessControl, SafeMath {
         vaultProposal._status = VaultProposalStatus.Passed;
         vaultProposal._txKey = txKey;
 
-        ProposalRecord storage txProposal = _txProposals[vaultProposal._txId];
+        ProposalRecord storage txProposal = _txProposals[
+            vaultProposal._txIdHash
+        ];
         txProposal._resourceID = proposal._resourceID;
         txProposal._dataHash = proposal._dataHash;
         txProposal._depositNonce = depositNonce;
@@ -648,7 +650,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
             VaultProposalStatus.Passed,
             proposal._resourceID,
             proposal._dataHash,
-            vaultProposal._txId,
+            vaultProposal._txIdHash,
             txKey
         );
     }
@@ -684,7 +686,7 @@ contract Bridge is Pausable, AccessControl, SafeMath {
             VaultProposalStatus.Executed,
             proposal._resourceID,
             proposal._dataHash,
-            vaultProposal._txId,
+            vaultProposal._txIdHash,
             vaultProposal._txKey
         );
     }
