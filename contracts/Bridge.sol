@@ -599,6 +599,15 @@ contract Bridge is Pausable, AccessControl, SafeMath {
 
         vaultProposal._status = VaultProposalStatus.Active;
         vaultProposal._txIdHash = txIdHash;
+
+        ProposalRecord storage txProposal = _txProposals[
+            vaultProposal._txIdHash
+        ];
+        txProposal._resourceID = proposal._resourceID;
+        txProposal._dataHash = proposal._dataHash;
+        txProposal._depositNonce = depositNonce;
+        txProposal._originChainID = chainID;
+
         emit VaultProposalEvent(
             chainID,
             depositNonce,
@@ -635,14 +644,6 @@ contract Bridge is Pausable, AccessControl, SafeMath {
 
         vaultProposal._status = VaultProposalStatus.Passed;
         vaultProposal._txKey = txKey;
-
-        ProposalRecord storage txProposal = _txProposals[
-            vaultProposal._txIdHash
-        ];
-        txProposal._resourceID = proposal._resourceID;
-        txProposal._dataHash = proposal._dataHash;
-        txProposal._depositNonce = depositNonce;
-        txProposal._originChainID = chainID;
 
         emit VaultProposalEvent(
             chainID,
