@@ -718,26 +718,24 @@ contract Bridge is Pausable, AccessControl, SafeMath {
             proposal._status != ProposalStatus.Inactive,
             "proposal is not active"
         );
-        require(
-            proposal._status == ProposalStatus.Passed,
-            "proposal already transferred"
-        );
         require(dataHash == proposal._dataHash, "data doesn't match datahash");
 
-        proposal._status = ProposalStatus.Executed;
+        if (proposal._status == ProposalStatus.Passed) {
+            proposal._status = ProposalStatus.Executed;
 
-        IDepositExecute depositHandler = IDepositExecute(
-            _resourceIDToHandlerAddress[proposal._resourceID]
-        );
-        depositHandler.executeProposal(proposal._resourceID, data);
+            IDepositExecute depositHandler = IDepositExecute(
+                _resourceIDToHandlerAddress[proposal._resourceID]
+            );
+            depositHandler.executeProposal(proposal._resourceID, data);
 
-        emit ProposalEvent(
-            chainID,
-            depositNonce,
-            proposal._status,
-            proposal._resourceID,
-            proposal._dataHash
-        );
+            emit ProposalEvent(
+                chainID,
+                depositNonce,
+                proposal._status,
+                proposal._resourceID,
+                proposal._dataHash
+            );
+        }
     }
 
     /**
