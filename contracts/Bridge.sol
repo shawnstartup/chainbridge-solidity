@@ -597,7 +597,12 @@ contract Bridge is Pausable, AccessControl, SafeMath {
             "VaultProposal already active"
         );
 
+        vaultProposal._resourceID = proposal._resourceID;
+        vaultProposal._dataHash = proposal._dataHash;
+        vaultProposal._yesVotes = proposal._yesVotes;
+        vaultProposal._noVotes = proposal._noVotes;
         vaultProposal._status = VaultProposalStatus.Active;
+        vaultProposal._proposedBlock = block.number;
         vaultProposal._txIdHash = txIdHash;
 
         ProposalRecord storage txProposal = _txProposals[
